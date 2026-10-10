@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Vérification de sécurité</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #080808;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* BOUTON DE DÉPART */
+
+        #startBtn {
+            padding: 25px 40px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            font-size: 23px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 35px rgba(108, 92, 231, 0.5);
+            transition: transform 0.2s;
+        }
+
+        #startBtn:hover {
+            transform: scale(1.05);
+        }
+
+        /* ÉCRAN DE SIMULATION */
+
+        #screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100dvh;
+            z-index: 9999;
+
+            background: #050505;
+
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            padding: 25px;
+            overflow-y: auto;
+            text-align: center;
+        }
+
+        /* ALERTE */
+
+        .title {
+            color: #ff3030;
+            font-size: clamp(30px, 6vw, 60px);
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-shadow: 0 0 25px rgba(255, 0, 0, 0.7);
+
+            animation: blink 0.7s infinite alternate;
+        }
+
+        @keyframes blink {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0.55;
+            }
+        }
+
+        .subtitle {
+            color: white;
+            font-size: clamp(16px, 3vw, 24px);
+            margin: 25px 0 45px;
+        }
+
+        /* BARRE DE PROGRESSION */
+
+        .progress-container {
+            width: 85%;
+            max-width: 650px;
+            height: 45px;
+
+            background: #222;
+            border: 2px solid #ff3030;
+            border-radius: 10px;
+
+            padding: 4px;
+            overflow: hidden;
+
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+        }
+
+        #progressBar {
+            width: 0%;
+            height: 100%;
+
+            background: linear-gradient(
+                90deg,
+                #ff2020,
+                #ff7777
+            );
+
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+
+        #percentage {
+            margin-top: 25px;
+            color: #ff3030;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        /* FAUX LOGS */
+
+        #logs {
+            margin-top: 30px;
+            width: 85%;
+            max-width: 650px;
+            min-height: 160px;
+
+            font-family: monospace;
+            font-size: 15px;
+            line-height: 1.8;
+
+            color: #00ff66;
+            text-align: left;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        /* RÉVÉLATION FINALE */
+
+        #done {
+            margin-top: 20px;
+            font-size: clamp(24px, 5vw, 40px);
+            color: #00ff99;
+            font-weight: bold;
+        }
+
+        #done[hidden] {
+            display: none;
+        }
+
+        /* BOUTON DE SORTIE */
+
+        #stopBtn {
+            margin-top: 25px;
+            padding: 12px 24px;
+
+            border: 1px solid #666;
+            border-radius: 12px;
+
+            background: #191919;
+            color: white;
+
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .title {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BOUTON DE DÉPART -->
+
+    <button id="startBtn">
+        Démarrer la vérification de sécurité
+    </button>
+
+
+    <!-- ÉCRAN DE SIMULATION -->
+
+    <main id="screen">
+
+        <div class="title">
+            ⚠ ALERTE DE SÉCURITÉ ⚠
+        </div>
+
+        <div class="subtitle">
+            HACKING EN COURS...<br>
+            Récupération de vos données en cours...
+        </div>
+
+        <div class="progress-container"
+             id="progressContainer"
+             role="progressbar"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="0">
+
+            <div id="progressBar"></div>
+
+        </div>
+
+        <div id="percentage">
+            0%
+        </div>
+
+        <pre id="logs"></pre>
+
+        <div id="done" hidden>
+            C'ÉTAIT UNE BLAGUE !
+            <p style="font-size: 17px; color: white;">
+                Aucun fichier n'a été consulté ou envoyé.
+            </p>
+        </div>
+
+        <button id="stopBtn">
+            Arrêter la simulation
+        </button>
+
+    </main>
+
+
+    <script>
+
+        const startBtn = document.getElementById("startBtn");
+        const screen = document.getElementById("screen");
+
+        const progressBar = document.getElementById("progressBar");
+        const progressContainer =
+            document.getElementById("progressContainer");
+
+        const percentage = document.getElementById("percentage");
+        const logs = document.getElementById("logs");
+
+        const done = document.getElementById("done");
+        const stopBtn = document.getElementById("stopBtn");
+
+
+        // FAUX MESSAGES DE PIRATAGE
+
+        const messages = [
+            "Analyse du disque dur local...",
+            "Accès aux dossiers secrets accordé !",
+            "Copie des photos de vacances en cours...",
+            "Extraction de l'historique Internet...",
+            "Calcul de la commande de 500 pizzas...",
+            "Transmission vers le serveur du hacker..."
+        ];
+
+
+        // GÉNÉRATION DE L'ALARME
+
+        let audioContext = null;
+        let oscillator = null;
+        let soundInterval = null;
+        let progressInterval = null;
+
+        function startAlarm() {
+
+            try {
+
+                const AudioContextClass =
+                    window.AudioContext ||
+                    window.webkitAudioContext;
+
+                if (!AudioContextClass) return;
+
+                audioContext = new AudioContextClass();
+
+                const gain = audioContext.createGain();
+
+                // Volume modéré
+                gain.gain.value = 0.035;
+
+                oscillator = audioContext.createOscillator();
+
+                oscillator.type = "sine";
+                oscillator.frequency.value = 540;
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+
+                oscillator.start();
+
+                if (audioContext.state === "suspended") {
+                    audioContext.resume().catch(() => {});
+                }
+
+                let high = false;
+
+                soundInterval = setInterval(() => {
+
+                    if (!oscillator || !audioContext) return;
+
+                    high = !high;
+
+                    oscillator.frequency.setTargetAtTime(
+                        high ? 800 : 520,
+                        audioContext.currentTime,
+                        0.05
+                    );
+
+                }, 420);
+
+            } catch (error) {
+                console.warn("Audio indisponible :", error);
+            }
+        }
+
+
+        // ARRÊTER L'ALARME
+
+        function stopAlarm() {
+
+            if (soundInterval !== null) {
+                clearInterval(soundInterval);
+                soundInterval = null;
+            }
+
+            if (oscillator) {
+                try {
+                    oscillator.stop();
+                } catch (error) {}
+
+                oscillator.disconnect();
+                oscillator = null;
+            }
+
+            if (audioContext) {
+                audioContext.close().catch(() => {});
+                audioContext = null;
+            }
+        }
+
+
+        // CLIC SUR LE BOUTON
+
+        startBtn.addEventListener("click", () => {
+
+            startBtn.disabled = true;
+
+            // LANCEMENT AUDIO DIRECTEMENT APRÈS LE CLIC
+
+            startAlarm();
+
+
+            // DEMANDE DE PLEIN ÉCRAN
+
+            const element = document.documentElement;
+
+            const fullscreen =
+                element.requestFullscreen ||
+                element.webkitRequestFullscreen;
+
+            if (fullscreen) {
+
+                try {
+
+                    const result = fullscreen.call(element);
+
+                    if (result && typeof result.catch === "function") {
+                        result.catch(() => {});
+                    }
+
+                } catch (error) {}
+            }
+
+
+            // AFFICHER L'ÉCRAN D'ALERTE
+
+            startBtn.style.display = "none";
+            screen.style.display = "flex";
+
+
+            // BARRE DE PROGRESSION : 12 SECONDES
+
+            const startTime = performance.now();
+
+            let nextMessage = 0;
+
+            progressInterval = setInterval(() => {
+
+                const elapsed = performance.now() - startTime;
+
+                const progress = Math.min(
+                    100,
+                    Math.floor(elapsed / 120)
+                );
+
+                progressBar.style.width = progress + "%";
+                percentage.textContent = progress + "%";
+
+                progressContainer.setAttribute(
+                    "aria-valuenow",
+                    progress
+                );
+
+
+                // FAUX MESSAGES
+
+                while (
+                    nextMessage < messages.length &&
+                    progress >= (nextMessage + 1) * 15
+                ) {
+
+                    logs.textContent +=
+                        "> " + messages[nextMessage] + "\n";
+
+                    nextMessage++;
+                }
+
+
+                // FIN DE LA SIMULATION
+
+                if (progress >= 100) {
+
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+
+                    stopAlarm();
+
+                    percentage.textContent = "100%";
+
+                    done.hidden = false;
+
+                    stopBtn.textContent = "Recommencer";
+                }
+
+            }, 80);
+
+        });
+
+
+        // ARRÊTER OU RECOMMENCER
+
+        stopBtn.addEventListener("click", () => {
+
+            if (progressInterval !== null) {
+                clearInterval(progressInterval);
+            }
+
+            stopAlarm();
+
+            if (document.fullscreenElement &&
+                document.exitFullscreen) {
+
+                document.exitFullscreen().catch(() => {});
+            }
+
+            location.reload();
+
+        });
+
+    </script>
+
+</body>
+</html>
