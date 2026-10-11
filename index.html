@@ -275,6 +275,104 @@
         .snake-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
         .snake-actions button { font-size: 14px; padding: 10px 14px; }
 
+
+        /* DEUXIÈME JEU CACHÉ : SAUTE PAR-DESSUS LES PICS */
+        #jumpUnlockNotice[hidden], #jumpLaunch[hidden], #spikeGame[hidden] { display: none; }
+        #jumpUnlockNotice {
+            margin: 12px auto;
+            padding: 10px;
+            border: 1px solid #f6c453;
+            border-radius: 12px;
+            background: #322912;
+            color: #ffe08b;
+            font: bold 15px Arial, sans-serif;
+        }
+        #jumpLaunch {
+            border: 1px solid #f6c453;
+            border-radius: 12px;
+            padding: 11px 16px;
+            margin: 8px;
+            background: #4c3914;
+            color: #fff0c2;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        #spikeGame {
+            position: fixed;
+            z-index: 10002;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+            padding: 14px;
+            background: #070b17;
+        }
+        .runner-card {
+            width: min(100%, 740px);
+            margin: auto;
+            padding: 18px;
+            border-radius: 19px;
+            border: 1px solid #4e65a5;
+            background: #10192c;
+            box-shadow: 0 0 38px rgba(100,150,255,.17);
+            text-align: center;
+        }
+        .runner-card h2 {
+            font-size: clamp(23px, 5vw, 34px);
+            color: #84b5ff;
+            margin: 0 0 10px;
+        }
+        #runnerScore {
+            font: bold 18px monospace;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        #runnerBoard {
+            display: block;
+            width: 100%;
+            max-width: 680px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: 10px;
+            border: 2px solid #5476bc;
+            background: #141f38;
+            touch-action: manipulation;
+        }
+        #runnerStatus {
+            margin: 12px auto;
+            min-height: 24px;
+            color: #dde7ff;
+            font-size: 15px;
+        }
+        .runner-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .runner-actions button {
+            padding: 12px 18px;
+            border: 1px solid #7d9be5;
+            border-radius: 12px;
+            background: #263f78;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #jumpBtn {
+            background: #3267c0;
+            font-weight: bold;
+            min-width: 120px;
+            touch-action: manipulation;
+        }
+        @media (max-height: 570px) {
+            .runner-card { padding: 8px; }
+            .runner-card h2 { margin: 0 0 4px; }
+            #runnerStatus { margin: 5px auto; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .title {
                 animation: none;
@@ -337,6 +435,8 @@
                 <div id="snakeScore">Score : 0</div>
                 <canvas id="snakeBoard" width="400" height="400" aria-label="Jeu de Snake"></canvas>
                 <p id="snakeStatus" role="status">Flèches, ZQSD, WASD ou boutons tactiles.</p>
+                <div id="jumpUnlockNotice" role="status" hidden>🏆 NOUVEAU JEU DÉBLOQUÉ !<br>10 pommes sans mourir : défi réussi !</div>
+                <button id="jumpLaunch" type="button" hidden>Jouer à Spike Dash ▶</button>
                 <div class="snake-controls" aria-label="Contrôles de Snake">
                     <button type="button" data-dir="up" aria-label="Haut">↑</button>
                     <button type="button" data-dir="left" aria-label="Gauche">←</button>
@@ -346,6 +446,19 @@
                 <div class="snake-actions">
                     <button type="button" id="snakeRestart">Nouvelle partie</button>
                     <button type="button" id="snakeClose">Fermer le jeu</button>
+                </div>
+            </div>
+        </section>
+        <section id="spikeGame" role="dialog" aria-modal="true" aria-labelledby="runnerTitle" hidden>
+            <div class="runner-card">
+                <h2 id="runnerTitle">SPIKE DASH</h2>
+                <div id="runnerScore">Obstacles évités : 0 · Record : 0</div>
+                <canvas id="runnerBoard" width="640" height="280" aria-label="Jeu de saut : évite les triangles"></canvas>
+                <p id="runnerStatus" role="status">Appuie sur Espace pour sauter par-dessus les pics !</p>
+                <div class="runner-actions">
+                    <button type="button" id="jumpBtn">SAUTER ↑</button>
+                    <button type="button" id="runnerRetry">Recommencer</button>
+                    <button type="button" id="runnerClose">Retour au Snake</button>
                 </div>
             </div>
         </section>
@@ -685,6 +798,9 @@
             if (ate) {
                 score++;
                 snakeScore.textContent = "Score : " + score;
+                if (score >= 10 && !runnerUnlocked) {
+                    unlockRunner();
+                }
                 if (snake.length === cells * cells) {
                     paintSnake();
                     finishSnake(true);
@@ -706,6 +822,8 @@
             food = placeFood();
             snakeScore.textContent = "Score : 0";
             snakeStatus.textContent = "Flèches, ZQSD, WASD ou boutons tactiles.";
+            jumpUnlockNotice.hidden = true;
+            jumpLaunch.hidden = !runnerUnlocked;
             paintSnake();
             snakeInterval = setInterval(advanceSnake, 145);
         }
@@ -739,7 +857,7 @@
         });
 
         document.addEventListener("keydown", event => {
-            if (secretGame.hidden) return;
+            if (secretGame.hidden || !spikeGame.hidden) return;
             const keys = {
                 ArrowUp: "up", ArrowDown: "down",
                 ArrowLeft: "left", ArrowRight: "right",
@@ -772,6 +890,226 @@
                 ? (dx > 0 ? "right" : "left")
                 : (dy > 0 ? "down" : "up"));
         }, { passive: true });
+
+
+        // SECOND SECRET : dix pommes dans une seule partie de Snake.
+        // Le déblocage reste enregistré localement dans ce navigateur.
+        const jumpUnlockNotice = document.getElementById("jumpUnlockNotice");
+        const jumpLaunch = document.getElementById("jumpLaunch");
+        const spikeGame = document.getElementById("spikeGame");
+        const runnerBoard = document.getElementById("runnerBoard");
+        const runnerCtx = runnerBoard.getContext("2d");
+        const runnerScore = document.getElementById("runnerScore");
+        const runnerStatus = document.getElementById("runnerStatus");
+        const runnerRetry = document.getElementById("runnerRetry");
+        const runnerClose = document.getElementById("runnerClose");
+        const jumpBtn = document.getElementById("jumpBtn");
+        let runnerUnlocked = false;
+        try { runnerUnlocked = localStorage.getItem("secretRunnerUnlocked") === "true"; } catch (e) {}
+        jumpLaunch.hidden = !runnerUnlocked;
+
+        function unlockRunner() {
+            runnerUnlocked = true;
+            try { localStorage.setItem("secretRunnerUnlocked", "true"); } catch (e) {}
+            jumpUnlockNotice.hidden = false;
+            jumpLaunch.hidden = false;
+            // Arrêter temporairement Snake pour laisser le joueur découvrir le cadeau.
+            if (snakeInterval !== null) {
+                clearInterval(snakeInterval);
+                snakeInterval = null;
+            }
+            snakeStatus.textContent = "10 pommes réussies ! Clique sur « Jouer à Spike Dash ».";
+        }
+
+        // Runner autonome dessiné sur canvas : carré, sol et triangles.
+        const groundY = 235;
+        const runner = { x: 90, y: groundY - 32, size: 32, vy: 0, grounded: true };
+        let spikes = [];
+        let avoided = 0;
+        let record = 0;
+        let spawnIn = 1.15;
+        let runnerOver = false;
+        let runnerAnimation = null;
+        let previousFrame = 0;
+        try { record = Number(localStorage.getItem("spikeDashBest")) || 0; } catch (e) {}
+
+        function runnerHUD() {
+            runnerScore.textContent = "Obstacles évités : " + avoided + " · Record : " + Math.max(record, avoided);
+        }
+
+        function drawRunner() {
+            if (!runnerCtx) return;
+            const c = runnerCtx;
+            c.clearRect(0, 0, 640, 280);
+            c.fillStyle = "#141f38";
+            c.fillRect(0, 0, 640, 280);
+
+            // Petites étoiles et ligne du sol
+            c.fillStyle = "#354a76";
+            for (let i = 0; i < 25; i++) {
+                c.fillRect((i * 97 + 31) % 640, (i * 43 + 17) % 173, 2, 2);
+            }
+            c.fillStyle = "#5378b8";
+            c.fillRect(0, groundY, 640, 4);
+            c.fillStyle = "#1c304f";
+            c.fillRect(0, groundY + 4, 640, 41);
+
+            // Les obstacles sont de vrais triangles.
+            c.fillStyle = "#ff5367";
+            spikes.forEach(spike => {
+                c.beginPath();
+                c.moveTo(spike.x, groundY);
+                c.lineTo(spike.x + spike.w / 2, groundY - spike.h);
+                c.lineTo(spike.x + spike.w, groundY);
+                c.closePath();
+                c.fill();
+            });
+
+            c.fillStyle = "#74d8ff";
+            c.fillRect(runner.x, runner.y, runner.size, runner.size);
+            c.fillStyle = "#e8fbff";
+            c.fillRect(runner.x + 21, runner.y + 7, 5, 5);
+        }
+
+        function runnerJump() {
+            if (spikeGame.hidden) return;
+            if (runnerOver) {
+                newRunnerGame();
+                return;
+            }
+            if (runner.grounded) {
+                runner.vy = -675;
+                runner.grounded = false;
+            }
+        }
+
+        function endRunnerGame() {
+            runnerOver = true;
+            if (runnerAnimation !== null) cancelAnimationFrame(runnerAnimation);
+            runnerAnimation = null;
+            runnerStatus.textContent = "Partie terminée ! Clique sur « Recommencer » ou appuie sur Espace.";
+            runnerHUD();
+        }
+
+        function runnerFrame(now) {
+            if (spikeGame.hidden || runnerOver) return;
+            // Éviter les sauts trop grands après une mise en veille de l'onglet.
+            const dt = Math.min((now - previousFrame) / 1000 || 0, 0.035);
+            previousFrame = now;
+
+            const speed = Math.min(395, 265 + avoided * 4);
+            runner.vy += 1650 * dt;
+            runner.y += runner.vy * dt;
+            if (runner.y >= groundY - runner.size) {
+                runner.y = groundY - runner.size;
+                runner.vy = 0;
+                runner.grounded = true;
+            }
+
+            spawnIn -= dt;
+            if (spawnIn <= 0) {
+                const w = 27 + Math.random() * 10;
+                const h = 30 + Math.random() * 13;
+                spikes.push({ x: 650, w, h, counted: false });
+                // Un espacement suffisant pour que les sauts soient possibles.
+                spawnIn = 1.2 + Math.random() * .55;
+            }
+
+            spikes.forEach(spike => {
+                spike.x -= speed * dt;
+                if (!spike.counted && spike.x + spike.w < runner.x) {
+                    spike.counted = true;
+                    avoided++;
+                    runnerHUD();
+                }
+            });
+            spikes = spikes.filter(spike => spike.x + spike.w > -10);
+
+            // Collision avec la partie réelle du triangle (une petite tolérance).
+            for (const s of spikes) {
+                const playerLeft = runner.x + 5;
+                const playerRight = runner.x + runner.size - 5;
+                const horizontalOverlap = playerRight > s.x && playerLeft < s.x + s.w;
+                if (!horizontalOverlap) continue;
+                const middle = Math.max(s.x, Math.min(s.x + s.w, (playerLeft + playerRight) / 2));
+                const triangleHeightAtX = s.h * (1 - Math.abs(middle - (s.x + s.w / 2)) / (s.w / 2));
+                if (triangleHeightAtX > 0 && runner.y + runner.size - 4 > groundY - triangleHeightAtX) {
+                    drawRunner();
+                    endRunnerGame();
+                    return;
+                }
+            }
+            drawRunner();
+            runnerAnimation = requestAnimationFrame(runnerFrame);
+        }
+
+        function newRunnerGame() {
+            if (runnerAnimation !== null) cancelAnimationFrame(runnerAnimation);
+            runnerAnimation = null;
+            spikes = [];
+            avoided = 0;
+            spawnIn = 1.15;
+            runner.y = groundY - runner.size;
+            runner.vy = 0;
+            runner.grounded = true;
+            runnerOver = false;
+            runnerStatus.textContent = "Barre d'espace ou bouton SAUTER pour éviter les pics !";
+            runnerHUD();
+            drawRunner();
+            previousFrame = performance.now();
+            runnerAnimation = requestAnimationFrame(runnerFrame);
+        }
+
+        function openRunner() {
+            if (!runnerUnlocked) return;
+            if (snakeInterval !== null) {
+                clearInterval(snakeInterval);
+                snakeInterval = null;
+            }
+            spikeGame.hidden = false;
+            newRunnerGame();
+            jumpBtn.focus();
+        }
+
+        function closeRunner() {
+            if (runnerAnimation !== null) cancelAnimationFrame(runnerAnimation);
+            runnerAnimation = null;
+            spikeGame.hidden = true;
+            // Une nouvelle partie de Snake est disponible en revenant.
+            newSnakeGame();
+            jumpLaunch.focus();
+        }
+
+        jumpLaunch.addEventListener("click", openRunner);
+        runnerRetry.addEventListener("click", newRunnerGame);
+        runnerClose.addEventListener("click", closeRunner);
+        jumpBtn.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            runnerJump();
+        });
+        runnerBoard.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            runnerJump();
+        });
+        document.addEventListener("keydown", event => {
+            if (spikeGame.hidden) return;
+            if (event.code === "Space" || event.code === "ArrowUp") {
+                event.preventDefault();
+                if (!event.repeat) runnerJump();
+            } else if (event.key === "Escape") {
+                event.preventDefault();
+                closeRunner();
+            }
+        });
+        document.addEventListener("visibilitychange", () => {
+            if (!spikeGame.hidden && document.hidden && runnerAnimation !== null) {
+                cancelAnimationFrame(runnerAnimation);
+                runnerAnimation = null;
+            } else if (!spikeGame.hidden && !document.hidden && !runnerOver && runnerAnimation === null) {
+                previousFrame = performance.now();
+                runnerAnimation = requestAnimationFrame(runnerFrame);
+            }
+        });
 
     </script>
 
